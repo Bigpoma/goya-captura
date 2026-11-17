@@ -1,0 +1,14 @@
+{
+  "hosting": {
+    "site": "bigpoma-odonnell",
+    "public": "public",
+    "headers": [
+      {
+        "source": "**/*.jpg",
+        "headers": [
+          { "key": "Cache-Control", "value": "no-cache, no-store, max-age=0" }
+        ]
+      }
+    ]
+  }
+}
