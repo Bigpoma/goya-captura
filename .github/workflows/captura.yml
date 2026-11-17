@@ -41,14 +41,11 @@ jobs:
           ls -lh public/precio.jpg
 
       - name: Publicar en Firebase Hosting
-        env:
-          FIREBASE_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: |
-          echo "$FIREBASE_KEY" > "$RUNNER_TEMP/clave.json"
-          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/clave.json"
-          npx --yes firebase-tools@latest deploy --only hosting \
-            --project "$PROYECTO_FIREBASE" --non-interactive
-          rm -f "$RUNNER_TEMP/clave.json"
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: bigpoma-odonnell
+          channelId: live
 
       # Una vez al dia deja un registro en el repositorio para que GitHub
       # no desactive la tarea programada por inactividad (60 dias)
