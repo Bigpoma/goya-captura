@@ -2,7 +2,7 @@ name: Captura precio oro Goya
 
 on:
   schedule:
-    - cron: "*/5 * * * *"     # cada 5 minutos (GitHub puede retrasarlo unos minutos)
+    - cron: "17 * * * *"      # reserva: una vez por hora (la orden cada 5 min la da cron-job.org)
   workflow_dispatch:          # permite lanzarlo a mano desde la pestaña Actions
 
 permissions:
