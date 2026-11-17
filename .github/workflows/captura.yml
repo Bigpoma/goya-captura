@@ -1,0 +1,65 @@
+name: Captura precio oro Goya
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"     # cada 5 minutos (GitHub puede retrasarlo unos minutos)
+  workflow_dispatch:          # permite lanzarlo a mano desde la pestaña Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: captura-goya
+  cancel-in-progress: false
+
+env:
+  URL: https://pantalla.goyacomprooro.com/
+  ANCHO: "1080"
+  ALTO: "1920"
+  PROYECTO_FIREBASE: bigpoma-odonnell
+  TZ: Europe/Madrid
+
+jobs:
+  captura:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Capturar la pantalla con Chrome
+        run: |
+          mkdir -p public
+          google-chrome --headless=new --no-sandbox --disable-gpu --hide-scrollbars \
+            --force-device-scale-factor=1 --window-size=${ANCHO},${ALTO} \
+            --virtual-time-budget=8000 --screenshot=captura.png "$URL"
+          test -s captura.png
+
+      - name: Convertir a JPG
+        run: |
+          pip install --quiet pillow
+          python3 -c "from PIL import Image; Image.open('captura.png').convert('RGB').save('public/precio.jpg', quality=85, optimize=True)"
+          ls -lh public/precio.jpg
+
+      - name: Publicar en Firebase Hosting
+        env:
+          FIREBASE_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          echo "$FIREBASE_KEY" > "$RUNNER_TEMP/clave.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/clave.json"
+          npx --yes firebase-tools@latest deploy --only hosting \
+            --project "$PROYECTO_FIREBASE" --non-interactive
+          rm -f "$RUNNER_TEMP/clave.json"
+
+      # Una vez al dia deja un registro en el repositorio para que GitHub
+      # no desactive la tarea programada por inactividad (60 dias)
+      - name: Registro diario (mantener activo)
+        run: |
+          HOY=$(date +%F)
+          if [ "$(cat ultima-ejecucion.txt 2>/dev/null)" != "$HOY" ]; then
+            echo "$HOY" > ultima-ejecucion.txt
+            git config user.name "captura-bot"
+            git config user.email "captura-bot@users.noreply.github.com"
+            git add ultima-ejecucion.txt
+            git commit -m "Registro diario $HOY"
+            git push
+          fi
